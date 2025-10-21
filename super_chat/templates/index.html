@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat with Grandma Lara 🌌</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        overflow: hidden;
+        background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+        color: white;
+        transition: background 1s ease, color 1s ease;
+    }
+
+    body.light-mode {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        color: #222;
+    }
+
+    canvas#galaxy {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+    }
+
+    .chat-container {
+        width: 100%;
+        max-width: 800px;
+        height: 90vh;
+        backdrop-filter: blur(25px) saturate(180%);
+        background: rgba(0,0,0,0.35);
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+        transition: all 0.5s ease;
+    }
+
+    body.light-mode .chat-container {
+        background: rgba(255,255,255,0.85);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    .chat-header {
+        background: linear-gradient(135deg, #54f4de 0%, #8e908f 100%);
+        color: white;
+        padding: 25px;
+        text-align: center;
+        border-radius: 20px 20px 0 0;
+        position: relative;
+        transition: background 0.5s, color 0.5s;
+    }
+
+    .chat-header h1 {
+        font-size: 24px;
+    }
+
+    /* 🟢 Improved easy-to-switch toggle */
+    .toggle-switch {
+        position: absolute;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        width: 70px;
+        height: 34px;
+        /* cursor: pointer; */
+    }
+
+    .toggle-switch input {
+        display: none;
+    }
+
+    .slider {
+        width: 100%;
+        height: 100%;
+        border-radius: 34px;
+        background: #ccc;
+        position: relative;
+        transition: background 0.4s, box-shadow 0.4s;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .slider::before {
+        content: "☀️";
+        position: absolute;
+        top: 3px;
+        left: -20px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #fff;
+        text-align: center;
+        line-height: 28px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: transform 0.4s, background 0.4s, box-shadow 0.4s;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    }
+
+    input:checked + .slider {
+        background: #059669;
+        box-shadow: 0 0 12px rgba(5,150,105,0.7);
+    }
+
+    input:checked + .slider::before {
+        content: "🌙";
+        transform: translateX(36px);
+        background: #000;
+        box-shadow: 0 0 10px rgba(0,0,0,0.6);
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+    }
+
+    .message {
+        margin-bottom: 20px;
+        display: flex;
+        align-items: flex-start;
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+        justify-content: flex-end;
+    }
+
+    .message-content {
+        max-width: 70%;
+        padding: 12px 18px;
+        border-radius: 18px;
+        word-wrap: break-word;
+        line-height: 1.5;
+        transition: all 0.5s ease;
+    }
+
+    /* Dark mode bubble glow */
+    .message.user .message-content {
+        background: linear-gradient(135deg, #2dd4bf 0%, #059669 100%);
+        color: white;
+        box-shadow: 0 0 12px rgba(45,212,191,0.7),
+                    0 0 25px rgba(45,212,191,0.5),
+                    0 0 50px rgba(45,212,191,0.3);
+    }
+
+    .message.assistant .message-content {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.2);
+        box-shadow: 0 0 10px rgba(255,255,255,0.5),
+                    0 0 20px rgba(255,255,255,0.3);
+    }
+
+    /* Light mode bubble glow */
+    body.light-mode .message.user .message-content,
+    body.light-mode .message.assistant .message-content {
+        background: #f0f0f0;
+        color: black;
+        border-color: #ddd;
+        box-shadow: 0 0 6px rgba(0,0,0,0.1),
+                    0 0 12px rgba(0,0,0,0.05);
+    }
+
+    .chat-input-container {
+        padding: 20px;
+        background: rgba(255,255,255,0.1);
+        display: flex;
+        gap: 10px;
+        transition: background 0.5s ease;
+    }
+
+    body.light-mode .chat-input-container {
+        background: #fff;
+    }
+
+    #userInput {
+        flex: 1;
+        padding: 12px 18px;
+        border: 2px solid #ccc;
+        border-radius: 25px;
+        font-size: 15px;
+        outline: none;
+        background-color: transparent;
+        color: white; /* dark mode default */
+        transition: border-color 0.3s, background 0.5s, color 0.5s;
+    }
+
+    body.light-mode #userInput {
+        color: black; /* light mode */
+    }
+
+    #userInput:focus {
+        border-color: #2dd4bf;
+    }
+
+    #sendButton {
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #2dd4bf 0%, #059669 100%);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #sendButton:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(45,212,191,0.4);
+    }
+
+    #sendButton:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+</head>
+<body>
+<canvas id="galaxy"></canvas>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <h1>👵 Grandma Lara</h1>
+        <div class="toggle-switch">
+            <label>
+                <input type="checkbox" id="modeToggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <div class="message assistant">
+            <div class="message-content">Hello dear! I'm Grandma Lara. How can I help you today?</div>
+        </div>
+    </div>
+
+    <div class="chat-input-container">
+        <input type="text" id="userInput" placeholder="Type your message here..." autocomplete="off">
+        <button id="sendButton">Send</button>
+    </div>
+</div>
+
+<script>
+    // 🌟 Galaxy Background
+    const canvas = document.getElementById('galaxy');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    let w, h;
+
+    function init() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+        stars = [];
+        for (let i = 0; i < 200; i++) {
+            stars.push({x: Math.random()*w, y: Math.random()*h, z: Math.random()*w});
+        }
+    }
+
+    function draw() {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0,0,w,h);
+        ctx.fillStyle = 'white';
+        stars.forEach(star => {
+            const x = (star.x - w/2)*(100/star.z)+w/2;
+            const y = (star.y - h/2)*(100/star.z)+h/2;
+            const size = 1 - star.z/w;
+            ctx.beginPath();
+            ctx.arc(x,y,size,0,Math.PI*2);
+            ctx.fill();
+        });
+    }
+
+    function update() {
+        stars.forEach(star => { star.z -= 2; if(star.z<=0) star.z=w; });
+    }
+
+    function animate() { requestAnimationFrame(animate); draw(); update(); }
+
+    window.onresize = init;
+    init();
+    animate();
+
+    // 🌞 Dark / Light mode toggle
+    const modeToggle = document.getElementById('modeToggle');
+    modeToggle.addEventListener('change', () => {
+        document.body.classList.toggle('light-mode', modeToggle.checked);
+    });
+
+    // 💬 Chat behavior
+    const chatMessages = document.getElementById('chatMessages');
+    const userInput = document.getElementById('userInput');
+    const sendButton = document.getElementById('sendButton');
+
+    function addMessage(content, role) {
+        const msg = document.createElement('div');
+        msg.className = `message ${role}`;
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = content;
+        msg.appendChild(contentDiv);
+        chatMessages.appendChild(msg);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function sendMessage() {
+        const message = userInput.value.trim();
+        if (!message) return;
+        addMessage(message, 'user');
+        userInput.value = '';
+        sendButton.disabled = true;
+
+        setTimeout(() => {
+            addMessage("Oh dear, that's interesting! Tell me more 💕", 'assistant');
+            sendButton.disabled = false;
+        }, 1000);
+    }
+
+    sendButton.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', (e) => { if(e.key==='Enter') sendMessage(); });
+</script>
+</body>
+</html>
