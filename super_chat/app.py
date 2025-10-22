@@ -9,8 +9,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Initialize Hugging Face client
-# print("HF_TOKEN loaded:", bool(os.getenv("HF_TOKEN")))
+# Hugging Face client
 client = InferenceClient(token=os.getenv("HF_TOKEN"))
 
 chat_history = []
@@ -22,9 +21,8 @@ def index():
 @app.route("/chat", methods=["POST"])
 def chat():
     global chat_history
-    
     try:
-        user_input = request.json["message"]
+        user_input = request.json.get("message", "")
         chat_history.append({"role": "user", "content": user_input})
 
         # Build conversation context
@@ -32,10 +30,10 @@ def chat():
             {"role": "system", "content": "You are JD's helpful assistant named Grandma Lara. Respond clearly and kindly in English, no matter the topic."}
         ] + chat_history
 
-        # Use Hugging Face's free model
+        # Hugging Face chat model call
         response = client.chat_completion(
-            messages=messages,
             model="mistralai/Mistral-7B-Instruct-v0.2",
+            messages=messages,
             max_tokens=500
         )
 
@@ -43,10 +41,9 @@ def chat():
         chat_history.append({"role": "assistant", "content": reply})
 
         return jsonify({"response": reply})
-    
     except Exception as e:
         print(f"Error: {str(e)}")
         return jsonify({"response": "Sorry dear, I had a little trouble. Please try again!"}), 200
 
 if __name__ == "__main__":
-    app.run( port=5174, use_reloader=False)
+    app.run(port=5174, use_reloader=False)

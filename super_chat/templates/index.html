@@ -264,54 +264,7 @@
         <button id="sendButton">Send</button>
     </div>
 </div>
-
 <script>
-    // 🌟 Galaxy Background
-    const canvas = document.getElementById('galaxy');
-    const ctx = canvas.getContext('2d');
-    let stars = [];
-    let w, h;
-
-    function init() {
-        w = canvas.width = window.innerWidth;
-        h = canvas.height = window.innerHeight;
-        stars = [];
-        for (let i = 0; i < 200; i++) {
-            stars.push({x: Math.random()*w, y: Math.random()*h, z: Math.random()*w});
-        }
-    }
-
-    function draw() {
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0,0,w,h);
-        ctx.fillStyle = 'white';
-        stars.forEach(star => {
-            const x = (star.x - w/2)*(100/star.z)+w/2;
-            const y = (star.y - h/2)*(100/star.z)+h/2;
-            const size = 1 - star.z/w;
-            ctx.beginPath();
-            ctx.arc(x,y,size,0,Math.PI*2);
-            ctx.fill();
-        });
-    }
-
-    function update() {
-        stars.forEach(star => { star.z -= 2; if(star.z<=0) star.z=w; });
-    }
-
-    function animate() { requestAnimationFrame(animate); draw(); update(); }
-
-    window.onresize = init;
-    init();
-    animate();
-
-    // 🌞 Dark / Light mode toggle
-    const modeToggle = document.getElementById('modeToggle');
-    modeToggle.addEventListener('change', () => {
-        document.body.classList.toggle('light-mode', modeToggle.checked);
-    });
-
-    // 💬 Chat behavior
     const chatMessages = document.getElementById('chatMessages');
     const userInput = document.getElementById('userInput');
     const sendButton = document.getElementById('sendButton');
@@ -327,21 +280,35 @@
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function sendMessage() {
+    async function sendMessage() {
         const message = userInput.value.trim();
         if (!message) return;
+
         addMessage(message, 'user');
         userInput.value = '';
         sendButton.disabled = true;
 
-        setTimeout(() => {
-            addMessage("Oh dear, that's interesting! Tell me more 💕", 'assistant');
-            sendButton.disabled = false;
-        }, 1000);
+        try {
+            const res = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message })
+            });
+
+            const data = await res.json();
+            addMessage(data.response, 'assistant');
+        } catch (err) {
+            addMessage("Oops! Something went wrong. 😢", 'assistant');
+            console.error(err);
+        }
+
+        sendButton.disabled = false;
     }
 
     sendButton.addEventListener('click', sendMessage);
-    userInput.addEventListener('keypress', (e) => { if(e.key==='Enter') sendMessage(); });
+    userInput.addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') sendMessage();
+    });
 </script>
 </body>
 </html>
